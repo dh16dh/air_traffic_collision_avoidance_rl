@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "ae43250 - bio-inspired intelligence"
+version = "0.1.0"
+description = ""
+authors = ["David Hartong <davidahartong@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^2.0.0"
+matplotlib = "^3.9.1"
+pygame = "^2.6.0"
+gymnasium = "^0.29.1"
+stable-baselines3 = "^2.3.2"
+tqdm = "^4.66.4"
+rich = "^13.7.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
