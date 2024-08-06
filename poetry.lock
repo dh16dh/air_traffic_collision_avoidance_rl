@@ -1016,7 +1016,6 @@ files = [
 numpy = [
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version == \"3.11\""},
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -1490,6 +1489,25 @@ extra-no-roms = ["opencv-python", "pillow", "psutil", "pygame", "rich", "shimmy[
 tests = ["black (>=24.2.0,<25)", "mypy", "pytest", "pytest-cov", "pytest-env", "pytest-xdist", "ruff (>=0.3.1)"]
 
 [[package]]
+name = "supersuit"
+version = "3.9.2"
+description = "Wrappers for Gymnasium and PettingZoo"
+optional = false
+python-versions = "<3.12,>=3.8"
+files = [
+    {file = "SuperSuit-3.9.2-py3-none-any.whl", hash = "sha256:1dcecd419100eeed19c51444a341dd7ab14deaf3cd775ba475de4e63eba6159c"},
+    {file = "SuperSuit-3.9.2.tar.gz", hash = "sha256:60e384fe63ab6752acbfc34f991f48d6346592b1dd3475138e3599ab41eaaf24"},
+]
+
+[package.dependencies]
+gymnasium = ">=0.28.1"
+numpy = ">=1.19.0"
+tinyscaler = ">=1.2.6"
+
+[package.extras]
+testing = ["moviepy (>=1.0.0)", "pettingzoo[butterfly,classic] (>=1.23.1)", "pytest", "stable-baselines3 (>=2.0.0)"]
+
+[[package]]
 name = "sympy"
 version = "1.13.0"
 description = "Computer algebra system (CAS) in Python"
@@ -1518,6 +1536,34 @@ files = [
     {file = "tbb-2021.13.0-py3-none-win32.whl", hash = "sha256:6669d26703e9943f6164c6407bd4a237a45007e79b8d3832fe6999576eaaa9ef"},
     {file = "tbb-2021.13.0-py3-none-win_amd64.whl", hash = "sha256:3528a53e4bbe64b07a6112b4c5a00ff3c61924ee46c9c68e004a1ac7ad1f09c3"},
 ]
+
+[[package]]
+name = "tinyscaler"
+version = "1.2.8"
+description = "A tiny, simple image scaler."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "tinyscaler-1.2.8-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b69a0414d626ba5d075b93546f37ece0c10f690f7d3ce3f162c2316ac1667511"},
+    {file = "tinyscaler-1.2.8-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fb30db6782df95c34b294266876e71fd3d32dd3d33bf4c8ec72d07f570ae7bca"},
+    {file = "tinyscaler-1.2.8-cp310-cp310-win_amd64.whl", hash = "sha256:34d43fad3e09331b7a9259ee11ff4c209c31f00129b3a0c98480f7e43c789c2f"},
+    {file = "tinyscaler-1.2.8-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:57ad9b0203e984ad140b31f0fe82f8bd82e4c31574461264a9a6e7f7d105eb50"},
+    {file = "tinyscaler-1.2.8-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7dbf9f80ba08918c304261e2f8e3356eccbc925364b706cef2997f0abf0fc91"},
+    {file = "tinyscaler-1.2.8-cp311-cp311-win_amd64.whl", hash = "sha256:93869b729bc2d596e2b2e0803d2f9e0e1a0baced6c96b8c21af178b3061b3fba"},
+    {file = "tinyscaler-1.2.8-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:fcafd6a8b7ac8c8eabc560f99f987e3e9c00b32a5f3472b28ee865db9bf264b2"},
+    {file = "tinyscaler-1.2.8-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7474fe93740b0aa045e4e2ad60f8df6d5d570c4ea903c6d63ca3868efd8f4e22"},
+    {file = "tinyscaler-1.2.8-cp312-cp312-win_amd64.whl", hash = "sha256:6a7c18d9c082f30193bd23a6eb8ad84d2ee9b224138c8c25a76db96cba71a473"},
+    {file = "tinyscaler-1.2.8-cp38-cp38-macosx_11_0_universal2.whl", hash = "sha256:393aafdbbf0733cd328ee07b07ea3be442f640b232c0c3d31915ed047ea93162"},
+    {file = "tinyscaler-1.2.8-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7969396adaaaf65694e2cacda394922f6c1939afff7c1202f3a32ee9a0067e30"},
+    {file = "tinyscaler-1.2.8-cp38-cp38-win_amd64.whl", hash = "sha256:a6fbaf0417e6b76c063431675d4f22090c5d34667f6cc5f7c6334e144053611d"},
+    {file = "tinyscaler-1.2.8-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:3143352056dc9ac2ab87795fa3f36498c52ae603b76b3b73189544c588f46d77"},
+    {file = "tinyscaler-1.2.8-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:aa5eb3d4ba1fb803e1616fde7f58126355a47c6ca79c3393907e21c677bc5d37"},
+    {file = "tinyscaler-1.2.8-cp39-cp39-win_amd64.whl", hash = "sha256:17409e85ff23d5eb29da65d6cdfdeafeb7d94b7c8051b1ab8457886ceb61b234"},
+    {file = "tinyscaler-1.2.8.tar.gz", hash = "sha256:0ce3b77562f1db74b2035ccaf62807af043333ce655e71effd6ec85fbf8ded06"},
+]
+
+[package.dependencies]
+numpy = ">=1.21.0"
 
 [[package]]
 name = "torch"
@@ -1640,5 +1686,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "007dfdbd52c43a21890433e319fba681c02781d885580b3881d4a12445e71b17"
+python-versions = ">=3.10, <3.12"
+content-hash = "f9d6a4d29ea44c2aaa5ead24d5140ddb575a745e2c0d6f7efdeb42e95005fb7e"

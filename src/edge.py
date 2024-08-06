@@ -11,9 +11,9 @@ class Edge:
 
     def __post_init__(self):
         if self.kind == 'top':
-            self.x, self.y = random.uniform(0, self.env_width), 0.
-        elif self.kind == 'bottom':
             self.x, self.y = random.uniform(0, self.env_width), self.env_height
+        elif self.kind == 'bottom':
+            self.x, self.y = random.uniform(0, self.env_width), 0
         elif self.kind == 'left':
             self.x, self.y = 0., random.uniform(0, self.env_height)
         elif self.kind == 'right':

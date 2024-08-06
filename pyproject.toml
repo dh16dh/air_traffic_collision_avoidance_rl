@@ -6,7 +6,7 @@ authors = ["David Hartong <davidahartong@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10, <3.12"
 numpy = "^2.0.0"
 matplotlib = "^3.9.1"
 pygame = "^2.6.0"
@@ -16,6 +16,7 @@ tqdm = "^4.66.4"
 rich = "^13.7.1"
 optuna = "^3.6.1"
 pettingzoo = "^1.24.3"
+supersuit = "^3.9.2"
 
 
 [build-system]
