@@ -14,13 +14,14 @@ class PygameVisualizer:
         self.clock = pygame.time.Clock()
 
     def draw_aircraft(self):
-        pos = self.env.aircraft.position
-        end_pos = self.env.aircraft.end_position
-        pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * 100), int(pos[1] * 100)), 10)
-        pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * 100), int(end_pos[1] * 100)), 10)
-        pygame.draw.circle(self.screen, (255, 0, 0),
-                           (int(self.env.aircraft.start_position[0] * 100),
-                            int(self.env.aircraft.start_position[1] * 100)), 10)
+        for aircraft in self.env.aircraft_list:
+            pos = aircraft.position
+            end_pos = aircraft.end_position
+            pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * 100), int(pos[1] * 100)), 10)
+            pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * 100), int(end_pos[1] * 100)), 10)
+            pygame.draw.circle(self.screen, (255, 0, 0),
+                               (int(aircraft.start_position[0] * 100),
+                                int(aircraft.start_position[1] * 100)), 10)
 
     def render(self):
         self.screen.fill((255, 255, 255))

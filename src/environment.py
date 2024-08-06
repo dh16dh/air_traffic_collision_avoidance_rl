@@ -32,19 +32,30 @@ class Environment(gym.Env):
         self.heading_multiplier = max_hdg_chg
         self.speed_multiplier = max_spd_chg
 
-    def step(self, action):
-        heading_change = action[0] * self.heading_multiplier
-        speed_change = action[1] * self.speed_multiplier
-        reward, terminated = self.aircraft.update(heading_change, speed_change)
-        state = self.aircraft.get_state()
+        self.action_num = int(self.action_space.shape[0] / self.num_aircraft)
 
-        return state, reward, terminated, False, {}
+    def step(self, action):
+        rewards = []
+        terminated = []
+        states = []
+        for i, aircraft in enumerate(self.aircraft_list):
+            heading_change = action[i * self.action_num] * self.heading_multiplier
+            speed_change = action[i * self.action_num + 1] * self.speed_multiplier
+            reward, done = aircraft.update(heading_change, speed_change)
+            states.extend(aircraft.get_state())
+            rewards.append(reward)
+            terminated.append(done)
+
+        return np.array(states), np.sum(rewards), all(terminated), False, {}
 
     def reset(self, seed=None, options=None) -> tuple[np.array, dict]:
         super().reset(seed=seed)
 
-        self.aircraft.reset()
-        return self.aircraft.get_state(), {}
+        states = []
+        for aircraft in self.aircraft_list:
+            aircraft.reset()
+            states.extend(aircraft.get_state())
+        return np.array(states), {}
 
     def create_aircraft(self):
         aircraft = []

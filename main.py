@@ -6,20 +6,23 @@ from gymnasium import spaces
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
+from hyperparam_tuner import HyperparamTuner
 from src.environment import Environment
 from src.visualizer import PygameVisualizer
 
 width, height = 10, 10
 max_hdg_chg = 15
-max_spd_chg = 0.1
-min_spd, max_spd = 0.1, 0.8
+max_spd_chg = 0.01
+min_spd, max_spd = 0.1, 0.3
 
-state_space_minimum = np.array([0, 0, 0, min_spd])
-state_space_maximum = np.array([width, height, 360, max_spd])
+max_dist = np.hypot(height, width)
+
+state_space_minimum = np.array([0, 0])
+state_space_maximum = np.array([max_dist, max_dist])
 action_space_minimum = np.array([-1, -1])
 action_space_maximum = np.array([1, 1])
 
-num_aircraft = 2
+num_aircraft = 5
 
 observation_space = spaces.Box(low=np.tile(state_space_minimum, num_aircraft),
                                high=np.tile(state_space_maximum, num_aircraft),
@@ -36,9 +39,11 @@ env = Environment(width, height, max_hdg_chg, max_spd_chg, min_spd, max_spd, num
 
 check_env(env, warn=True)
 
-agent = PPO('MlpPolicy', env, verbose=1)
+# tuner = HyperparamTuner(env)
+# best_params = tuner.tune()
 
-agent.learn(total_timesteps=100000)
+agent = PPO('MlpPolicy', env, verbose=1)
+agent.learn(total_timesteps=1000000)
 
 agent.save('ppo_model')
 
@@ -60,8 +65,7 @@ while not done:
     action, _states = model.predict(obs)
     obs, rewards, terminated, done, info = env.step(action)
 
-    print(f"Position: {round(obs[0], 2), round(obs[1], 2)}, Heading: {obs[2]}, "
-          f"Speed: {round(obs[3],4)}, HdgChg: {action[0]*max_hdg_chg}, SpdChg: {action[1]*max_spd_chg}, Reward: {rewards}")
+    print(f"Dist to Goal: {obs[0]}, Dist to Track: {obs[1]}, HdgChg: {action[0]*max_hdg_chg}, SpdChg: {action[1]*max_spd_chg}, Reward: {rewards}")
 
     visualizer.render()
     visualizer.clock.tick(7)
