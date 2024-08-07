@@ -4,11 +4,13 @@ import pygame
 
 
 class PygameVisualizer:
+    resize_multiplier = 2
+
     def __init__(self, env):
         pygame.init()
         self.env = env
-        self.width = env.env_width * 100
-        self.height = env.env_height * 100
+        self.width = env.env_width * self.resize_multiplier
+        self.height = env.env_height * self.resize_multiplier
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Aircraft Navigation")
         self.clock = pygame.time.Clock()
@@ -18,11 +20,12 @@ class PygameVisualizer:
             pos = aircraft.position
             end_pos = aircraft.end_position
             start_pos = aircraft.start_position
-            pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * 100), int(self.height - pos[1] * 100)), 10)
-            pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * 100), int(self.height - end_pos[1] * 100)), 10)
+            pygame.draw.circle(self.screen, (0, 255, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), aircraft.PAZ * self.resize_multiplier)
+            pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), self.resize_multiplier)
+            pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * self.resize_multiplier), int(self.height - end_pos[1] * self.resize_multiplier)), self.resize_multiplier)
             pygame.draw.circle(self.screen, (255, 0, 0),
-                               (int(start_pos[0] * 100),
-                                int(self.height - start_pos[1] * 100)), 10)
+                               (int(start_pos[0] * self.resize_multiplier),
+                                int(self.height - start_pos[1] * self.resize_multiplier)), self.resize_multiplier)
 
     def render(self):
         self.screen.fill((255, 255, 255))
