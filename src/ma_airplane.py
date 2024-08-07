@@ -1,12 +1,18 @@
-import random
+from __future__ import annotations
+
 import math as m
+import random
 
 import numpy as np
 
 from src.edge import Edge
+from utils.units import nmi_to_km, kmh_to_kms
 
 
 class Aircraft:
+    PAZ = nmi_to_km(5)
+    NMAC = nmi_to_km(0.1)
+
     def __init__(self, name, env):
         self.name = f"Aircraft_{str(name)}"
         self.env = env
@@ -22,6 +28,9 @@ class Aircraft:
         self.heading = None
         self.dist_to_goal = None
         self.dist_to_ideal_track = None
+        self.timestep = None
+
+        self.nearby_aircraft = []
 
         self.terminated = False
         self.reward = None
@@ -29,18 +38,24 @@ class Aircraft:
     def __str__(self):
         return f"{self.name}"
 
-    def reset(self):
-        self.start_position, self.end_position = self.get_start_end_points()
+    def __lt__(self, other):
+        return None
+
+    def reset(self, seed):
+        self.start_position, self.end_position = self.get_start_end_points(seed)
 
         self.position = self.start_position
-        self.speed = 0.007
+        self.speed = kmh_to_kms(800)
         self.heading = self.get_initial_heading()
         self.velocity = self.update_velocity()
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
 
+        self.nearby_aircraft = []
+
         self.terminated = False
         self.reward = 0
+        self.timestep = 0
 
     def step(self, heading_change, speed_change):
         self.heading = self.update_heading(heading_change)
@@ -50,33 +65,57 @@ class Aircraft:
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
 
-        self.reward -= 0.1
+        dist_to_goal_norm = self.env.normalize_observation(self.dist_to_goal, self.env.min_dist_to_goal,
+                                                           self.env.max_dist_to_goal)
+        dist_to_ideal_norm = self.env.normalize_observation(self.dist_to_ideal_track, nmi_to_km(2),
+                                                            self.env.max_dist_ideal) * 100
+        hdg_chg_norm = self.env.normalize_observation(abs(heading_change), 0, max(self.env.heading_changes)) * 0.5
 
-        self.reward -= np.abs(heading_change)
+        self.reward = 0
+        self.reward -= dist_to_goal_norm
+        self.reward -= dist_to_ideal_norm
+        self.reward -= hdg_chg_norm
+
+        while self.nearby_aircraft:
+            distance, other_agent = self.nearby_aircraft.pop()
+            if distance < self.NMAC:
+                self.terminated = True
+            else:
+                self.reward += self.loss_of_separation_reward(distance)
 
         if self.dist_to_goal < self.tolerance:
-            self.reward += 50
+            self.reward += 100
             self.terminated = True
 
         out_of_bounds = (self.position[0] < 0 or self.position[0] > self.env.env_width or
                          self.position[1] < 0 or self.position[1] > self.env.env_height)
-        if out_of_bounds:
+        if out_of_bounds and self.timestep > 0:
             self.position = np.clip(self.position, [0., 0.], [self.env.env_width, self.env.env_height])
-            self.reward -= 0.5
+            self.reward -= 5
+            self.terminated = True
 
-    def get_start_end_points(self):
+        self.timestep += 1
+
+    def get_start_end_points(self, seed):
+        try:
+            seed2 = seed + 1
+        except TypeError as e:
+            seed2 = seed
         while True:
-            start_edge = self._generate_random_edge()
-            end_edge = self._generate_random_edge()
+            start_edge = self._generate_random_edge(seed)
+            end_edge = self._generate_random_edge(seed2)
+            if isinstance(seed2, int):
+                seed2 += 1
             if not start_edge.kind == end_edge.kind:
                 break
         start_position = np.array([start_edge.x, start_edge.y])
         end_position = np.array([end_edge.x, end_edge.y])
         return start_position, end_position
 
-    def _generate_random_edge(self):
+    def _generate_random_edge(self, seed):
+        random.seed(seed)
         edge = random.choice(['top', 'bottom', 'left', 'right'])
-        edge_obj = Edge(edge, self.env.env_width, self.env.env_height)
+        edge_obj = Edge(edge, self.env.env_width, self.env.env_height, seed)
         return edge_obj
 
     def get_initial_heading(self):
@@ -107,7 +146,7 @@ class Aircraft:
 
     def update_speed(self, spd_chg):
         new_speed = (self.speed + spd_chg)
-        new_speed = np.clip(new_speed, 0.005, 0.01)
+        new_speed = np.clip(new_speed, kmh_to_kms(700), kmh_to_kms(900))
         return new_speed
 
     def update_position(self):
@@ -122,3 +161,19 @@ class Aircraft:
         theta = np.deg2rad(self.heading)
         v_x, v_y = self.speed * m.sin(theta), self.speed * m.cos(theta)
         return np.array([v_x, v_y])
+
+    def loss_of_separation_reward(self, distance):
+        if self.PAZ >= distance:
+            try:
+                reward = - 30 / (2 + distance) + 1
+            except ZeroDivisionError:
+                reward = - 14
+        else:
+            reward = 0
+        return reward
+
+    def get_relative_velocity(self, other: Aircraft):
+        return other.velocity - self.velocity
+
+    def get_relative_position(self, other: Aircraft):
+        return other.position - self.position

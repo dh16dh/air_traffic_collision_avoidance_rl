@@ -8,8 +8,11 @@ class Edge:
     kind: Literal['top', 'bottom', 'left', 'right']
     env_width: float
     env_height: float
+    seed: int
 
     def __post_init__(self):
+        random.seed(self.seed)
+
         if self.kind == 'top':
             self.x, self.y = random.uniform(0, self.env_width), self.env_height
         elif self.kind == 'bottom':

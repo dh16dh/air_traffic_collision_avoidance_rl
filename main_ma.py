@@ -1,3 +1,4 @@
+import random
 import sys
 
 import pygame
@@ -10,7 +11,7 @@ import supersuit as ss
 from src.ma_environment import MultiAgentEnvironment
 
 
-def train(env_fn, steps: int = 100_000, seed: int = 0, **env_kwargs):
+def train(env_fn, steps: int = 100_000, seed: int = None, **env_kwargs):
     env = env_fn(**env_kwargs)
 
     env = ss.black_death_v3(env)
@@ -25,7 +26,10 @@ def train(env_fn, steps: int = 100_000, seed: int = 0, **env_kwargs):
         MlpPolicy,
         env,
         verbose=1,
-        learning_rate=0.0003
+        learning_rate=0.0003,
+        n_steps=1024,
+        gamma=0.999,
+        tensorboard_log="logs"
     )
 
     model.learn(total_timesteps=steps)
@@ -42,30 +46,38 @@ def eval(env_fn, num_games: int = 100, render_mode: str = None, **env_kwargs):
 
     model = PPO.load('ppo_model')
 
-    rewards = {agent: 0 for agent in env.possible_agents}
-
     for i in range(num_games):
+        rewards = {str(agent): 0 for agent in env.possible_agents}
         env.reset(seed=i)
 
+        terminations = {agent: False for agent in env.possible_agents}
+        truncations = {agent: False for agent in env.possible_agents}
+
+        times = 0
         for agent in env.agent_iter():
             obs, reward, termination, truncation, info = env.last()
-            print(agent, obs)
+
+            terminations[agent] = termination
+            truncations[agent] = truncation
 
             for a in env.agents:
-                rewards[a] += env.rewards[a]
-            if termination or truncation:
-                break
-            else:
+                rewards[str(a)] += env.rewards[a]
+            if not terminations[agent] and not truncations[agent]:
                 act = model.predict(obs, deterministic=True)[0]
+                env.step(act)
+            else:
+                env.step(None)
 
-            env.step(act)
+            if all(terminations.values()) or all(truncations.values()):
+                times = agent.timestep
+                break
+        print(f"Game {i} / {num_games}: Rewards: {rewards}, Timesteps: {times}")
+
     env.close()
 
 
 if __name__ == "__main__":
-    env_kwargs = {'width': 10, 'height': 10, 'num_aircraft': 1}
-    train(MultiAgentEnvironment, steps=1_000_000, **env_kwargs)
+    env_kwargs = {'width': 500, 'height': 500, 'num_aircraft': 15}
+    train(MultiAgentEnvironment, steps=7_000_000, **env_kwargs)
 
-    # run(MultiAgentEnvironment, render_mode='human', **env_kwargs)
-
-    eval(MultiAgentEnvironment, num_games=5, render_mode='human', **env_kwargs)
+    eval(MultiAgentEnvironment, num_games=10, render_mode="human", **env_kwargs)
