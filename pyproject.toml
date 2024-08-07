@@ -4,10 +4,11 @@ version = "0.1.0"
 description = ""
 authors = ["David Hartong <davidahartong@gmail.com>"]
 readme = "README.md"
+package-mode=false
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.12"
-numpy = "^2.0.0"
+numpy = "^1.26.4"
 matplotlib = "^3.9.1"
 pygame = "^2.6.0"
 gymnasium = "^0.29.1"
