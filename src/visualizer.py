@@ -22,10 +22,10 @@ class PygameVisualizer:
             start_pos = aircraft.start_position
             pygame.draw.circle(self.screen, (0, 255, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), aircraft.PAZ * self.resize_multiplier)
             pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), self.resize_multiplier)
-            pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * self.resize_multiplier), int(self.height - end_pos[1] * self.resize_multiplier)), self.resize_multiplier)
+            pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * self.resize_multiplier), int(self.height - end_pos[1] * self.resize_multiplier)), 5 * self.resize_multiplier)
             pygame.draw.circle(self.screen, (255, 0, 0),
                                (int(start_pos[0] * self.resize_multiplier),
-                                int(self.height - start_pos[1] * self.resize_multiplier)), self.resize_multiplier)
+                                int(self.height - start_pos[1] * self.resize_multiplier)), 5 * self.resize_multiplier)
 
     def render(self):
         self.screen.fill((255, 255, 255))

@@ -10,13 +10,14 @@ from pettingzoo.test import parallel_api_test
 
 from src.ma_airplane import Aircraft
 from src.visualizer import PygameVisualizer
+from utils.normalizers import normalize_range_min1_plus1
 from utils.units import nmi_to_km, kmh_to_kms
 
 
 class MultiAgentEnvironment(ParallelEnv):
     metadata = {'render_modes': ['human'], 'name': 'multi_agent_aircraft_collision_avoidance'}
 
-    MAX_NEARBY_AGENTS = 5
+    MAX_NEARBY_AGENTS = 3
 
     def __init__(self, width: int, height: int, num_aircraft: int, render_mode: str = None, **kwargs):
         # Environment specifications
@@ -32,16 +33,14 @@ class MultiAgentEnvironment(ParallelEnv):
         self.min_pos_y, self.max_pos_y = 0, self.env_height
         self.min_dist_to_goal, self.max_dist_to_goal = 0, np.hypot(self.env_width, self.env_height)
         self.min_dist_ideal, self.max_dist_ideal = 0, np.hypot(self.env_width, self.env_height)
-        self.min_hdg, self.max_hdg = 0, 360
+        self.min_hdg, self.max_hdg = -180, 180
         self.min_spd, self.max_spd = kmh_to_kms(700), kmh_to_kms(900)
         self.min_v_x = self.min_v_y = -self.max_spd
         self.max_v_x = self.max_v_y = self.max_spd
 
-        self.min_obs_array = [self.min_pos_x, self.min_pos_y, self.min_pos_x, self.min_pos_y, self.min_v_x, self.min_v_y, self.min_hdg, self.min_v_x,
-                              self.min_dist_to_goal, self.min_dist_ideal]
-        self.max_obs_array = [self.max_pos_x, self.max_pos_y, self.max_pos_x, self.max_pos_y, self.max_v_x, self.max_v_y, self.max_hdg, self.max_spd,
-                              self.max_dist_to_goal, self.max_dist_ideal]
-
+        self.num_base_observations = 5
+        self.num_states_per_nearby = 5
+        self.num_observations = self.num_base_observations + self.num_states_per_nearby * self.MAX_NEARBY_AGENTS
         # Action space
         # Heading changes based on standard turn rate being 3deg/s.
         # Speed changes to be determined.
@@ -123,14 +122,9 @@ class MultiAgentEnvironment(ParallelEnv):
 
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent: AgentID):
-        assert len(self.min_obs_array) == len(self.max_obs_array)
-
-        num_observations = len(self.min_obs_array)
-        num_nearby_agents = self.MAX_NEARBY_AGENTS
-
         return spaces.Box(low=-1,
                           high=1,
-                          shape=(num_observations + 5 * num_nearby_agents,),
+                          shape=(self.num_observations,),
                           dtype=np.float32)
 
     @functools.lru_cache(maxsize=None)
@@ -143,43 +137,32 @@ class MultiAgentEnvironment(ParallelEnv):
 
     def get_observations(self, agent):
         base_observation = (
-            self.normalize_observation(agent.position[0], self.min_pos_x, self.max_pos_x),
-            self.normalize_observation(agent.position[1], self.min_pos_y, self.max_pos_y),
-            self.normalize_observation(agent.end_position[0], self.min_pos_x, self.max_pos_x),
-            self.normalize_observation(agent.end_position[1], self.min_pos_y, self.max_pos_y),
-            self.normalize_observation(agent.velocity[0], self.min_v_x, self.max_v_x),
-            self.normalize_observation(agent.velocity[1], self.min_v_y, self.max_v_y),
-            self.normalize_observation(agent.heading, self.min_hdg, self.max_hdg),
-            self.normalize_observation(agent.speed, self.min_spd, self.max_spd),
-            self.normalize_observation(agent.dist_to_goal, self.min_dist_to_goal, self.max_dist_to_goal),
-            self.normalize_observation(agent.dist_to_ideal_track, self.min_dist_ideal, self.max_dist_ideal)
+            normalize_range_min1_plus1(agent.rel_heading, self.min_hdg, self.max_hdg),
+            normalize_range_min1_plus1(agent.speed, self.min_spd, self.max_spd),
+            normalize_range_min1_plus1(agent.vel_towards_goal, -self.max_spd, self.max_spd),
+            normalize_range_min1_plus1(agent.dist_to_goal, self.min_dist_to_goal, self.max_dist_to_goal),
+            normalize_range_min1_plus1(agent.dist_to_ideal_track, self.min_dist_ideal, self.max_dist_ideal)
         )
         nearby_observations = ()
         for distance, other in agent.nearby_aircraft:
             rel_v_x, rel_v_y = agent.get_relative_velocity(other)
             rel_p_x, rel_p_y = agent.get_relative_position(other)
             nearby_observation = (
-                self.normalize_observation(rel_v_x, 2*self.min_v_x, 2*self.max_v_x),
-                self.normalize_observation(rel_v_y, 2*self.min_v_y, 2*self.max_v_y),
-                self.normalize_observation(distance, -nmi_to_km(10), nmi_to_km(10)),
-                self.normalize_observation(rel_p_x, -nmi_to_km(10), nmi_to_km(10)),
-                self.normalize_observation(rel_p_y, -nmi_to_km(10), nmi_to_km(10))
+                normalize_range_min1_plus1(rel_v_x, 2 * self.min_v_x, 2 * self.max_v_x),
+                normalize_range_min1_plus1(rel_v_y, 2 * self.min_v_y, 2 * self.max_v_y),
+                normalize_range_min1_plus1(distance, -nmi_to_km(10), nmi_to_km(10)),
+                normalize_range_min1_plus1(rel_p_x, -nmi_to_km(10), nmi_to_km(10)),
+                normalize_range_min1_plus1(rel_p_y, -nmi_to_km(10), nmi_to_km(10))
             )
             nearby_observations += nearby_observation
         base_observation += nearby_observations
-        while len(base_observation) < 35:
+        while len(base_observation) < self.num_observations:
             base_observation += tuple([0])
         return base_observation
 
     def action_map(self, actions) -> tuple[float, float]:
         heading_index, speed_index = actions
         return self.heading_changes[heading_index], self.speed_changes[speed_index]
-
-    @staticmethod
-    def normalize_observation(observations, min_, max_):
-        normalized = (observations - min_) / (max_ - min_)
-        normalized = normalized * 2 - 1
-        return normalized
 
     @staticmethod
     def calculate_distances_between_agents(agent_1: AgentID, agent_2: AgentID) -> float:

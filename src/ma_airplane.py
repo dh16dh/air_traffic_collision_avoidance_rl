@@ -6,6 +6,7 @@ import random
 import numpy as np
 
 from src.edge import Edge
+from utils.normalizers import normalize_range_0_1
 from utils.units import nmi_to_km, kmh_to_kms
 
 
@@ -21,14 +22,18 @@ class Aircraft:
         self.end_position = None
         self.tolerance = 0.5
 
-        # States
+        # Hidden States
         self.position = None
-        self.speed = None
         self.velocity = None
-        self.heading = None
+        self.true_heading = None
+        self.timestep = None
+
+        # States
+        self.speed = None
+        self.vel_towards_goal = None
+        self.rel_heading = None
         self.dist_to_goal = None
         self.dist_to_ideal_track = None
-        self.timestep = None
 
         self.nearby_aircraft = []
 
@@ -46,7 +51,9 @@ class Aircraft:
 
         self.position = self.start_position
         self.speed = kmh_to_kms(800)
-        self.heading = self.get_initial_heading()
+        self.true_heading = self.get_ideal_heading()
+        self.rel_heading = 0
+        self.vel_towards_goal = self.get_relative_velocity_to_goal()
         self.velocity = self.update_velocity()
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
@@ -58,18 +65,20 @@ class Aircraft:
         self.timestep = 0
 
     def step(self, heading_change, speed_change):
-        self.heading = self.update_heading(heading_change)
+        self.true_heading = self.update_heading(heading_change)
         self.speed = self.update_speed(speed_change)
         self.position = self.update_position()
         self.velocity = self.update_velocity()
+        self.rel_heading = self.true_heading - self.get_ideal_heading()
+        self.vel_towards_goal = self.get_relative_velocity_to_goal()
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
 
-        dist_to_goal_norm = self.env.normalize_observation(self.dist_to_goal, self.env.min_dist_to_goal,
-                                                           self.env.max_dist_to_goal)
-        dist_to_ideal_norm = self.env.normalize_observation(self.dist_to_ideal_track, nmi_to_km(2),
-                                                            self.env.max_dist_ideal) * 100
-        hdg_chg_norm = self.env.normalize_observation(abs(heading_change), 0, max(self.env.heading_changes)) * 0.5
+        dist_to_goal_norm = normalize_range_0_1(self.dist_to_goal, self.env.min_dist_to_goal,
+                                                self.env.max_dist_to_goal)
+        dist_to_ideal_norm = normalize_range_0_1(self.dist_to_ideal_track, nmi_to_km(2),
+                                                 self.env.max_dist_ideal) * 10
+        hdg_chg_norm = normalize_range_0_1(abs(heading_change), 0, max(self.env.heading_changes)) * 0.5
 
         self.reward = 0
         self.reward -= dist_to_goal_norm
@@ -85,13 +94,13 @@ class Aircraft:
 
         if self.dist_to_goal < self.tolerance:
             self.reward += 100
-            self.terminated = True
+            # self.terminated = True
 
         out_of_bounds = (self.position[0] < 0 or self.position[0] > self.env.env_width or
                          self.position[1] < 0 or self.position[1] > self.env.env_height)
         if out_of_bounds and self.timestep > 0:
             self.position = np.clip(self.position, [0., 0.], [self.env.env_width, self.env.env_height])
-            self.reward -= 5
+            self.reward -= 75
             self.terminated = True
 
         self.timestep += 1
@@ -118,9 +127,9 @@ class Aircraft:
         edge_obj = Edge(edge, self.env.env_width, self.env.env_height, seed)
         return edge_obj
 
-    def get_initial_heading(self):
-        d_x = self.end_position[0] - self.start_position[0]
-        d_y = self.end_position[1] - self.start_position[1]
+    def get_ideal_heading(self):
+        d_x = self.end_position[0] - self.position[0]
+        d_y = self.end_position[1] - self.position[1]
         heading = (90 - np.rad2deg(np.arctan2(d_y, d_x))) % 360
         return heading
 
@@ -141,7 +150,7 @@ class Aircraft:
         return distance_to_track
 
     def update_heading(self, hdg_chg):
-        new_heading = (self.heading + hdg_chg) % 360
+        new_heading = (self.true_heading + hdg_chg) % 360
         return new_heading
 
     def update_speed(self, spd_chg):
@@ -150,7 +159,7 @@ class Aircraft:
         return new_speed
 
     def update_position(self):
-        theta = np.deg2rad(self.heading)
+        theta = np.deg2rad(self.true_heading)
 
         new_x = self.position[0] + self.speed * m.sin(theta)
         new_y = self.position[1] + self.speed * m.cos(theta)
@@ -158,7 +167,7 @@ class Aircraft:
         return np.array([new_x, new_y])
 
     def update_velocity(self):
-        theta = np.deg2rad(self.heading)
+        theta = np.deg2rad(self.true_heading)
         v_x, v_y = self.speed * m.sin(theta), self.speed * m.cos(theta)
         return np.array([v_x, v_y])
 
@@ -177,3 +186,6 @@ class Aircraft:
 
     def get_relative_position(self, other: Aircraft):
         return other.position - self.position
+
+    def get_relative_velocity_to_goal(self):
+        return self.speed * m.cos(self.rel_heading)

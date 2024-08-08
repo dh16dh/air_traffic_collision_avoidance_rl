@@ -77,7 +77,7 @@ def eval(env_fn, num_games: int = 100, render_mode: str = None, **env_kwargs):
 
 
 if __name__ == "__main__":
-    env_kwargs = {'width': 500, 'height': 500, 'num_aircraft': 15}
-    train(MultiAgentEnvironment, steps=7_000_000, **env_kwargs)
+    env_kwargs = {'width': 300, 'height': 300, 'num_aircraft': 5}
+    train(MultiAgentEnvironment, steps=500_000, **env_kwargs)
 
     eval(MultiAgentEnvironment, num_games=10, render_mode="human", **env_kwargs)
