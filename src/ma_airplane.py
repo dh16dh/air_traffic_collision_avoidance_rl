@@ -74,14 +74,12 @@ class Aircraft:
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
 
-        dist_to_goal_norm = normalize_range_0_1(self.dist_to_goal, self.env.min_dist_to_goal,
-                                                self.env.max_dist_to_goal)
         dist_to_ideal_norm = normalize_range_0_1(self.dist_to_ideal_track, nmi_to_km(2),
                                                  self.env.max_dist_ideal) * 10
         hdg_chg_norm = normalize_range_0_1(abs(heading_change), 0, max(self.env.heading_changes)) * 0.5
 
         self.reward = 0
-        self.reward -= dist_to_goal_norm
+        self.reward -= 0.1
         self.reward -= dist_to_ideal_norm
         self.reward -= hdg_chg_norm
 
@@ -94,14 +92,14 @@ class Aircraft:
 
         if self.dist_to_goal < self.tolerance:
             self.reward += 100
-            # self.terminated = True
+            self.terminated = True
 
         out_of_bounds = (self.position[0] < 0 or self.position[0] > self.env.env_width or
                          self.position[1] < 0 or self.position[1] > self.env.env_height)
         if out_of_bounds and self.timestep > 0:
             self.position = np.clip(self.position, [0., 0.], [self.env.env_width, self.env.env_height])
-            self.reward -= 75
-            self.terminated = True
+            self.reward -= 15
+            # self.terminated = True
 
         self.timestep += 1
 
@@ -171,15 +169,39 @@ class Aircraft:
         v_x, v_y = self.speed * m.sin(theta), self.speed * m.cos(theta)
         return np.array([v_x, v_y])
 
-    def loss_of_separation_reward(self, distance):
-        if self.PAZ >= distance:
-            try:
-                reward = - 30 / (2 + distance) + 1
-            except ZeroDivisionError:
-                reward = - 14
-        else:
-            reward = 0
+    @staticmethod
+    def loss_of_separation_reward(distance):
+        reward = -nmi_to_km(2.5) + distance * 0.25
+        # if self.PAZ >= distance:
+        #     reward = -nmi_to_km(5) + distance
+        #     # try:
+        #     #     reward = - nmi_to_km(2.5) / (0.5 + distance)
+        #     # except ZeroDivisionError:
+        #     #     reward = - nmi_to_km(5)
+        # else:
+        #     reward = 0
         return reward
+
+    def get_relative_velocity_vectors(self, other: Aircraft):
+        relative_v_vector = other.velocity - self.velocity
+        v_long_vec = np.dot(relative_v_vector, self.velocity) / np.dot(self.velocity, self.velocity) * self.velocity
+        v_lat_vec = relative_v_vector - v_long_vec
+
+        u_long = self.velocity / np.linalg.norm(self.velocity)
+        u_lat = np.array([-u_long[1], u_long[0]])
+        T = np.column_stack((u_long, u_lat)).T
+        # TODO: Fix ordering
+        v_long = np.matmul(T, v_long_vec)[0]
+        v_lat = -np.matmul(T, v_lat_vec)[1]
+
+        return v_long, v_lat
+
+    def get_relative_position_angle(self, other: Aircraft):
+        heading_other = np.arctan2(other.position[1] - self.position[1], other.position[0] - self.position[0])
+        heading_other = 90 - np.rad2deg(heading_other)
+        relative_heading = heading_other - self.true_heading
+        relative_heading = (relative_heading + 180) % 360 - 180
+        return relative_heading
 
     def get_relative_velocity(self, other: Aircraft):
         return other.velocity - self.velocity
@@ -188,4 +210,5 @@ class Aircraft:
         return other.position - self.position
 
     def get_relative_velocity_to_goal(self):
-        return self.speed * m.cos(self.rel_heading)
+        hdg = np.deg2rad(self.rel_heading)
+        return self.speed * m.cos(hdg)

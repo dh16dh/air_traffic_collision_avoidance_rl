@@ -10,7 +10,7 @@ from pettingzoo.test import parallel_api_test
 
 from src.ma_airplane import Aircraft
 from src.visualizer import PygameVisualizer
-from utils.normalizers import normalize_range_min1_plus1
+from utils.normalizers import normalize_range_min1_plus1, normalize_range_0_1
 from utils.units import nmi_to_km, kmh_to_kms
 
 
@@ -38,8 +38,8 @@ class MultiAgentEnvironment(ParallelEnv):
         self.min_v_x = self.min_v_y = -self.max_spd
         self.max_v_x = self.max_v_y = self.max_spd
 
-        self.num_base_observations = 5
-        self.num_states_per_nearby = 5
+        self.num_base_observations = 7
+        self.num_states_per_nearby = 4
         self.num_observations = self.num_base_observations + self.num_states_per_nearby * self.MAX_NEARBY_AGENTS
         # Action space
         # Heading changes based on standard turn rate being 3deg/s.
@@ -92,6 +92,8 @@ class MultiAgentEnvironment(ParallelEnv):
                 distance = self.calculate_distances_between_agents(agent_1, agent_2)
                 if distance < nmi_to_km(10):
                     heapq.heappush(agent_1.nearby_aircraft, (distance, agent_2))
+                    if len(agent_1.nearby_aircraft) > 3:
+                        agent_1.nearby_aircraft = agent_1.nearby_aircraft[:3]
 
         terminations = {agent: agent.terminated for agent in self.agents}
         rewards = {agent: agent.reward for agent in self.agents}
@@ -137,22 +139,23 @@ class MultiAgentEnvironment(ParallelEnv):
 
     def get_observations(self, agent):
         base_observation = (
+            normalize_range_0_1(agent.dist_to_goal, self.min_dist_to_goal, self.max_dist_to_goal),
+            normalize_range_0_1(agent.dist_to_ideal_track, self.min_dist_ideal, self.max_dist_ideal),
+            normalize_range_0_1(agent.speed, self.min_spd, self.max_spd),
+            normalize_range_min1_plus1(agent.position[0], self.min_pos_x, self.max_pos_x),
+            normalize_range_min1_plus1(agent.position[1], self.min_pos_y, self.max_pos_y),
             normalize_range_min1_plus1(agent.rel_heading, self.min_hdg, self.max_hdg),
-            normalize_range_min1_plus1(agent.speed, self.min_spd, self.max_spd),
-            normalize_range_min1_plus1(agent.vel_towards_goal, -self.max_spd, self.max_spd),
-            normalize_range_min1_plus1(agent.dist_to_goal, self.min_dist_to_goal, self.max_dist_to_goal),
-            normalize_range_min1_plus1(agent.dist_to_ideal_track, self.min_dist_ideal, self.max_dist_ideal)
+            normalize_range_min1_plus1(agent.vel_towards_goal, -self.max_spd, self.max_spd)
         )
         nearby_observations = ()
         for distance, other in agent.nearby_aircraft:
-            rel_v_x, rel_v_y = agent.get_relative_velocity(other)
-            rel_p_x, rel_p_y = agent.get_relative_position(other)
+            rel_v_long, rel_v_lat = agent.get_relative_velocity_vectors(other)
+            rel_angle = agent.get_relative_position_angle(other)
             nearby_observation = (
-                normalize_range_min1_plus1(rel_v_x, 2 * self.min_v_x, 2 * self.max_v_x),
-                normalize_range_min1_plus1(rel_v_y, 2 * self.min_v_y, 2 * self.max_v_y),
-                normalize_range_min1_plus1(distance, -nmi_to_km(10), nmi_to_km(10)),
-                normalize_range_min1_plus1(rel_p_x, -nmi_to_km(10), nmi_to_km(10)),
-                normalize_range_min1_plus1(rel_p_y, -nmi_to_km(10), nmi_to_km(10))
+                normalize_range_min1_plus1(rel_v_lat, 2 * self.min_v_x, 2 * self.max_v_x),
+                normalize_range_min1_plus1(rel_v_long, 2 * self.min_v_y, 2 * self.max_v_y),
+                normalize_range_0_1(distance, -nmi_to_km(10), nmi_to_km(10)),
+                normalize_range_min1_plus1(rel_angle, self.min_hdg, self.max_hdg)
             )
             nearby_observations += nearby_observation
         base_observation += nearby_observations
