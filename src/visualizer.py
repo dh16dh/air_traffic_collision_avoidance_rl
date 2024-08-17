@@ -14,18 +14,25 @@ class PygameVisualizer:
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Aircraft Navigation")
         self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 28)
 
     def draw_aircraft(self):
         for aircraft in self.env.agents:
             pos = aircraft.position
             end_pos = aircraft.end_position
             start_pos = aircraft.start_position
-            pygame.draw.circle(self.screen, (0, 255, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), aircraft.PAZ * self.resize_multiplier)
+            pygame.draw.circle(self.screen, (0, 255, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), aircraft.PAZ / 2 * self.resize_multiplier)
             pygame.draw.circle(self.screen, (0, 0, 255), (int(pos[0] * self.resize_multiplier), int(self.height - pos[1] * self.resize_multiplier)), self.resize_multiplier)
             pygame.draw.circle(self.screen, (0, 255, 0), (int(end_pos[0] * self.resize_multiplier), int(self.height - end_pos[1] * self.resize_multiplier)), 5 * self.resize_multiplier)
             pygame.draw.circle(self.screen, (255, 0, 0),
                                (int(start_pos[0] * self.resize_multiplier),
                                 int(self.height - start_pos[1] * self.resize_multiplier)), 5 * self.resize_multiplier)
+
+            # Render the agent's ID as a label
+            label = self.font.render(str(aircraft.id), True, (0, 0, 0))
+            label_pos = (int(pos[0] * self.resize_multiplier) + 10,
+                         int(self.height - pos[1] * self.resize_multiplier) - 10)  # Adjust position if needed
+            self.screen.blit(label, label_pos)
 
     def render(self):
         self.screen.fill((255, 255, 255))

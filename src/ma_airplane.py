@@ -16,6 +16,7 @@ class Aircraft:
 
     def __init__(self, name, env):
         self.name = f"Aircraft_{str(name)}"
+        self.id = str(name)
         self.env = env
 
         self.start_position = None
@@ -27,6 +28,11 @@ class Aircraft:
         self.velocity = None
         self.true_heading = None
         self.timestep = None
+        self.PAZ_incursion_lst = []
+        self.NMAC_incursion_lst = []
+        self.num_PAZ_incursion = 0
+        self.num_NMAC_incursion = 0
+        self.distance_travelled = 0
 
         # States
         self.speed = None
@@ -63,6 +69,11 @@ class Aircraft:
         self.terminated = False
         self.reward = 0
         self.timestep = 0
+        self.PAZ_incursion_lst = []
+        self.NMAC_incursion_lst = []
+        self.num_PAZ_incursion = 0
+        self.num_NMAC_incursion = 0
+        self.distance_travelled = 0
 
     def step(self, heading_change, speed_change):
         self.true_heading = self.update_heading(heading_change)
@@ -73,6 +84,7 @@ class Aircraft:
         self.vel_towards_goal = self.get_relative_velocity_to_goal()
         self.dist_to_goal = self.get_distance_to_goal()
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
+        self.distance_travelled += self.speed
 
         dist_to_ideal_norm = normalize_range_0_1(self.dist_to_ideal_track, nmi_to_km(2),
                                                  self.env.max_dist_ideal) * 10
@@ -85,8 +97,15 @@ class Aircraft:
 
         while self.nearby_aircraft:
             distance, other_agent = self.nearby_aircraft.pop()
-            if distance < self.NMAC:
+            if self.NMAC <= distance < self.PAZ:
+                self.PAZ_incursion_lst.append((self.timestep, str(other_agent)))
+                if (self.timestep - 1, str(other_agent)) not in self.PAZ_incursion_lst:
+                    self.num_PAZ_incursion += 1
+            elif distance < self.NMAC:
                 self.terminated = True
+                self.NMAC_incursion_lst.append((self.timestep, str(other_agent)))
+                if (self.timestep - 1, str(other_agent)) not in self.NMAC_incursion_lst:
+                    self.num_NMAC_incursion += 1
             else:
                 self.reward += self.loss_of_separation_reward(distance)
 
@@ -99,7 +118,6 @@ class Aircraft:
         if out_of_bounds and self.timestep > 0:
             self.position = np.clip(self.position, [0., 0.], [self.env.env_width, self.env.env_height])
             self.reward -= 15
-            # self.terminated = True
 
         self.timestep += 1
 
@@ -212,3 +230,8 @@ class Aircraft:
     def get_relative_velocity_to_goal(self):
         hdg = np.deg2rad(self.rel_heading)
         return self.speed * m.cos(hdg)
+
+    def calculate_path_efficiency(self):
+        distance_required = np.linalg.norm(self.end_position - self.start_position)
+        return distance_required / self.distance_travelled
+
