@@ -4,6 +4,7 @@ import sys
 import pygame
 from pettingzoo.utils import parallel_to_aec
 from stable_baselines3 import PPO
+from stable_baselines3.common.utils import get_linear_fn
 from stable_baselines3.ppo import MlpPolicy
 
 import supersuit as ss
@@ -26,8 +27,8 @@ def train(env_fn, steps: int = 100_000, seed: int = None, **env_kwargs):
         MlpPolicy,
         env,
         verbose=1,
-        learning_rate=0.0003,
-        n_steps=1024,
+        learning_rate=get_linear_fn(3e-3, 3e-4, 0.7),
+        n_steps=2048,
         gamma=0.999,
         tensorboard_log="logs"
     )
@@ -93,7 +94,7 @@ def eval(env_fn, num_games: int = 100, render_mode: str = None, **env_kwargs):
 
 
 if __name__ == "__main__":
-    env_kwargs = {'width': 400, 'height': 400, 'num_aircraft': 1}
-    # train(MultiAgentEnvironment, steps=3_000_000, **env_kwargs)
+    env_kwargs = {'width': 400, 'height': 400, 'num_aircraft': 15}
+    # train(MultiAgentEnvironment, steps=3_500_000, **env_kwargs)
 
     eval(MultiAgentEnvironment, num_games=10, render_mode="human", **env_kwargs)

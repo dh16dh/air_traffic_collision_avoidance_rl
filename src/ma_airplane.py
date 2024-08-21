@@ -6,7 +6,7 @@ import random
 import numpy as np
 
 from src.edge import Edge
-from utils.normalizers import normalize_range_0_1
+from utils.normalizers import normalize_range_0_1, normalize_range_min1_plus1
 from utils.units import nmi_to_km, kmh_to_kms
 
 
@@ -88,11 +88,15 @@ class Aircraft:
 
         dist_to_ideal_norm = normalize_range_0_1(self.dist_to_ideal_track, nmi_to_km(2),
                                                  self.env.max_dist_ideal) * 10
-        hdg_chg_norm = normalize_range_0_1(abs(heading_change), 0, max(self.env.heading_changes)) * 0.5
+        dist_to_goal_norm = normalize_range_0_1(self.dist_to_goal, self.env.min_dist_to_goal, self.env.max_dist_to_goal) * 0.1
+        rel_hdg_norm = normalize_range_0_1(abs(self.rel_heading), 0, 90)
+        hdg_chg_norm = normalize_range_0_1(abs(heading_change), 0, max(self.env.heading_changes))
 
         self.reward = 0
         self.reward -= 0.1
-        self.reward -= dist_to_ideal_norm
+        self.reward -= rel_hdg_norm
+        # self.reward -= dist_to_ideal_norm
+        # self.reward -= dist_to_goal_norm
         self.reward -= hdg_chg_norm
 
         while self.nearby_aircraft:
@@ -115,7 +119,7 @@ class Aircraft:
 
         out_of_bounds = (self.position[0] < 0 or self.position[0] > self.env.env_width or
                          self.position[1] < 0 or self.position[1] > self.env.env_height)
-        if out_of_bounds and self.timestep > 0:
+        if out_of_bounds and self.timestep > 0 and not self.terminated:
             self.position = np.clip(self.position, [0., 0.], [self.env.env_width, self.env.env_height])
             self.reward -= 15
 
