@@ -154,7 +154,7 @@ class MultiAgentEnvironment(ParallelEnv):
             nearby_observation = (
                 normalize_range_min1_plus1(rel_v_lat, 2 * self.min_v_x, 2 * self.max_v_x),
                 normalize_range_min1_plus1(rel_v_long, 2 * self.min_v_y, 2 * self.max_v_y),
-                normalize_range_0_1(distance, -nmi_to_km(10), nmi_to_km(10)),
+                normalize_range_0_1(distance, 0, nmi_to_km(10)),
                 normalize_range_min1_plus1(rel_angle, self.min_hdg, self.max_hdg)
             )
             nearby_observations += nearby_observation

@@ -82,12 +82,12 @@ def eval(env_fn, num_games: int = 100, render_mode: str = None, **env_kwargs):
 
         reward_per_timestep = {str(agent): rewards[str(agent)] / times[str(agent)] for agent in env.possible_agents}
 
-        print(f"Game {i} / {num_games}: Rewards: {rewards}")
-        print(f"Game {i} / {num_games}: PAZ Incursions: {PAZ_incursions}")
-        print(f"Game {i} / {num_games}: NMAC Incursions: {NMAC_incursions}")
-        print(f"Game {i} / {num_games}: Path Efficiency: {path_efficiency}")
-        print(f"Game {i} / {num_games}: Time Taken: {times}")
-        print(f"Game {i} / {num_games}: Rewards per Timestep: {reward_per_timestep}")
+        print(f"Game {i+1} / {num_games}: Rewards: {rewards}")
+        print(f"Game {i+1} / {num_games}: PAZ Incursions: {PAZ_incursions}")
+        print(f"Game {i+1} / {num_games}: NMAC Incursions: {NMAC_incursions}")
+        print(f"Game {i+1} / {num_games}: Path Efficiency: {path_efficiency}")
+        print(f"Game {i+1} / {num_games}: Time Taken: {times}")
+        print(f"Game {i+1} / {num_games}: Rewards per Timestep: {reward_per_timestep}")
         print()
 
     env.close()
