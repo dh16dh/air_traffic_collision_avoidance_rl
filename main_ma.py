@@ -29,13 +29,13 @@ def train(env_fn, steps: int = 100_000, seed: int = None, **env_kwargs):
         verbose=1,
         learning_rate=get_linear_fn(3e-3, 3e-4, 0.7),
         n_steps=2048,
-        gamma=0.999,
+        gamma=0.9,
         tensorboard_log="logs"
     )
 
     model.learn(total_timesteps=steps)
 
-    model.save("ppo_model")
+    model.save("ppo_model_gamma0.9")
 
     env.close()
 
@@ -95,6 +95,6 @@ def eval(env_fn, num_games: int = 100, render_mode: str = None, **env_kwargs):
 
 if __name__ == "__main__":
     env_kwargs = {'width': 400, 'height': 400, 'num_aircraft': 15}
-    # train(MultiAgentEnvironment, steps=3_500_000, **env_kwargs)
+    train(MultiAgentEnvironment, steps=3_500_000, **env_kwargs)
 
-    eval(MultiAgentEnvironment, num_games=10, render_mode="human", **env_kwargs)
+    # eval(MultiAgentEnvironment, num_games=10, render_mode="human", **env_kwargs)

@@ -86,17 +86,12 @@ class Aircraft:
         self.dist_to_ideal_track = self.get_distance_to_ideal_track()
         self.distance_travelled += self.speed
 
-        dist_to_ideal_norm = normalize_range_0_1(self.dist_to_ideal_track, nmi_to_km(2),
-                                                 self.env.max_dist_ideal) * 10
-        dist_to_goal_norm = normalize_range_0_1(self.dist_to_goal, self.env.min_dist_to_goal, self.env.max_dist_to_goal) * 0.1
         rel_hdg_norm = normalize_range_0_1(abs(self.rel_heading), 0, 90)
         hdg_chg_norm = normalize_range_0_1(abs(heading_change), 0, max(self.env.heading_changes))
 
         self.reward = 0
         self.reward -= 0.1
         self.reward -= rel_hdg_norm
-        # self.reward -= dist_to_ideal_norm
-        # self.reward -= dist_to_goal_norm
         self.reward -= hdg_chg_norm
 
         while self.nearby_aircraft:
@@ -111,7 +106,8 @@ class Aircraft:
                 if (self.timestep - 1, str(other_agent)) not in self.NMAC_incursion_lst:
                     self.num_NMAC_incursion += 1
             else:
-                self.reward += self.loss_of_separation_reward(distance)
+                pass
+            self.reward += self.loss_of_separation_reward(distance)
 
         if self.dist_to_goal < self.tolerance:
             self.reward += 100
@@ -191,17 +187,11 @@ class Aircraft:
         v_x, v_y = self.speed * m.sin(theta), self.speed * m.cos(theta)
         return np.array([v_x, v_y])
 
-    @staticmethod
-    def loss_of_separation_reward(distance):
-        reward = -nmi_to_km(2.5) + distance * 0.25
-        # if self.PAZ >= distance:
-        #     reward = -nmi_to_km(5) + distance
-        #     # try:
-        #     #     reward = - nmi_to_km(2.5) / (0.5 + distance)
-        #     # except ZeroDivisionError:
-        #     #     reward = - nmi_to_km(5)
-        # else:
-        #     reward = 0
+    def loss_of_separation_reward(self, distance):
+        if self.PAZ < distance:
+            reward = -nmi_to_km(2.5) + distance * 0.25
+        else:
+            reward = -nmi_to_km(8.75) + distance * 1.5
         return reward
 
     def get_relative_velocity_vectors(self, other: Aircraft):
